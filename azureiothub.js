@@ -146,8 +146,8 @@ module.exports = function (RED) {
             //Sample
             //HostName=sample.azure-devices.net;DeviceId=sampleDevice;SharedAccessKey=wddU//P8fdfbSBDbIdghZAoSSS5gPhIZREhy3Zcv0JU=
             newConnectionString = "HostName=" + node.credentials.hostname + ";DeviceId=" + msg.payload.deviceId + ";SharedAccessKey=" + msg.payload.key
-	    if( typeof messageJSON.protocol !== 'undefined'){
-            	newProtocol = messageJSON.protocol;
+	    if( typeof msg.payload.protocol !== 'undefined'){
+            	newProtocol = msg.payload.protocol;
 	    } else {
 		newProtocol = config.protocol;
 	    }
