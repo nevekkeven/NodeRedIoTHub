@@ -29,7 +29,8 @@ module.exports = function (RED) {
         node.status({ fill: status.color, shape: "dot", text: status.text });
     }
 
-    var sendData = function (node, data) {
+    var sendData = function (node, msg) {
+		var data = msg.payload.data;
         node.log('Sending Message to Azure IoT Hub :\n   Payload: ' + JSON.stringify(data));
         // Create a message and send it to the IoT Hub every second
         var message = new Message(JSON.stringify(data));
@@ -39,7 +40,8 @@ module.exports = function (RED) {
                 setStatus(node, statusEnum.error);
             } else {
                 node.log('Message sent.');
-                node.send({payload: "Message sent."});
+				msg.payload = "Message sent.";
+                node.send(msg);
                 setStatus(node, statusEnum.sent);
             }
         });
@@ -72,7 +74,7 @@ module.exports = function (RED) {
                 node.error('Could not connect: ' + err.message);
                 setStatus(node, statusEnum.disconnected);
                 // make the app to reconnect
-                client = undefined;
+                disconnectFromIoTHub(node);
             } else {
                 node.log('Connected to Azure IoT Hub.');
                 setStatus(node, statusEnum.connected);
@@ -131,22 +133,19 @@ module.exports = function (RED) {
         RED.nodes.createNode(this, config);
         node.on('input', function (msg) {
 
-            var messageJSON = null;
-
             if (typeof (msg.payload) != "string") {
                 node.log("JSON");
-                messageJSON = msg.payload;
             } else {
                 node.log("String");
                 //Converting string to JSON Object
                 //Sample string: {"deviceId": "name", "key": "jsadhjahdue7230-=13", "protocol": "amqp", "data": "25"}
-                messageJSON = JSON.parse(msg.payload);
+                msg.payload = JSON.parse(msg.payload);
             }
 
             //Creating connectionString
             //Sample
             //HostName=sample.azure-devices.net;DeviceId=sampleDevice;SharedAccessKey=wddU//P8fdfbSBDbIdghZAoSSS5gPhIZREhy3Zcv0JU=
-            newConnectionString = "HostName=" + node.credentials.hostname + ";DeviceId=" + messageJSON.deviceId + ";SharedAccessKey=" + messageJSON.key
+            newConnectionString = "HostName=" + node.credentials.hostname + ";DeviceId=" + msg.payload.deviceId + ";SharedAccessKey=" + msg.payload.key
 	    if( typeof messageJSON.protocol !== 'undefined'){
             	newProtocol = messageJSON.protocol;
 	    } else {
@@ -154,7 +153,7 @@ module.exports = function (RED) {
 	    }
 
             // Sending data to Azure IoT Hub Hub using specific connectionString
-            sendMessageToIoTHub(node, messageJSON.data, nodeConfigUpdated(newConnectionString, newProtocol));
+            sendMessageToIoTHub(node, msg, nodeConfigUpdated(newConnectionString, newProtocol));
         });
 
         node.on('close', function () {
